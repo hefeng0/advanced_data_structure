@@ -6,14 +6,14 @@
 
 struct skiplist {
 	int count;
-	struct list_head list[MAX_LEVEL];
+	struct dlist_head list[MAX_LEVEL];
 };
 
 typedef struct sl_node {
 	int key;
 	int level;
 	//struct list_head list[0];
-	struct list_head list[MAX_LEVEL];
+	struct dlist_head list[MAX_LEVEL];
 } sl_node;
 
 struct skiplist * skiplist_init();

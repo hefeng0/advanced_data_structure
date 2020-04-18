@@ -11,15 +11,34 @@
 #include "rbtree.h"
 
 //唯一的一个叶子节点指针，每次fixup的时候，其父节点会随着需要而变化
-rbnode NIL={0, COLOR_BLACK, NULL, NULL, NULL};
+static rbnode NIL={0, COLOR_BLACK, NULL, NULL, NULL};
 
-#define COLOR(node) node->color
+void node_ext_fixup_default(rbnode *node)
+{
+	return;
+}
 
-rbtree * rbtree_init()
+void node_ext_fixup_to_root(rbtree *tree, rbnode *node)
+{
+	while ( node ) {
+		tree->node_ext_fixup(node);
+		node = node->parent;
+	}
+}
+
+bool rbtree_is_leaf(rbnode *node)
+{
+	return node == &NIL;
+}
+
+rbtree * rbtree_init(void (*node_ext_fixup)(rbnode *))
 {
 	rbtree * tree = malloc(sizeof(rbtree));
 	tree->count = 0;
 	tree->root = &NIL;
+	tree->node_ext_fixup = node_ext_fixup;
+	if ( !tree->node_ext_fixup )
+		tree->node_ext_fixup = node_ext_fixup_default;
 	return tree;
 }
 
@@ -32,6 +51,7 @@ void rbtree_node_init(rbnode *node, int key)
 	node->right = &NIL;
 }
 
+//node旋转到父节点
 void rotate_left(rbtree *tree, rbnode *node)
 {
 	rbnode * parent = node->parent;
@@ -49,6 +69,9 @@ void rotate_left(rbtree *tree, rbnode *node)
 	node->left = parent;
 	if ( node->parent == NULL )
 		tree->root = node;
+
+	tree->node_ext_fixup(parent);
+	tree->node_ext_fixup(node);
 }
 
 void rotate_right(rbtree *tree, rbnode *node)
@@ -68,6 +91,9 @@ void rotate_right(rbtree *tree, rbnode *node)
 	node->right = parent;
 	if ( node->parent == NULL )
 		tree->root = node;
+
+	tree->node_ext_fixup(parent);
+	tree->node_ext_fixup(node);
 }
 
 //只考虑存在右子节点的情况，其他情况不需要考虑
@@ -219,6 +245,9 @@ int rbtree_insert(rbtree *tree, rbnode *node)
 		node->color = COLOR_BLACK;
 	*cur = node;
 
+	//node ext info fixup
+	node_ext_fixup_to_root(tree, node->parent);
+
 	fixup_insert(tree, node);
 
 	return 0;
@@ -245,6 +274,7 @@ void rbtree_del(rbtree *tree, rbnode *node)
 			parent->left = node_to_fixup;
 		else 
 			parent->right = node_to_fixup;
+		node_ext_fixup_to_root(tree, parent);
 	} else if ( node->right == &NIL ) {
 		//删掉node节点
 		color_del = node->color;
@@ -259,6 +289,7 @@ void rbtree_del(rbtree *tree, rbnode *node)
 			parent->left = node_to_fixup;
 		else 
 			parent->right = node_to_fixup;
+		node_ext_fixup_to_root(tree, parent);
 	} 
 	else {
 		//1,找到真正要删除的节点：后继节点（实际上是将这个节点和node节点互换后删掉node），确定fixup节点
@@ -271,11 +302,13 @@ void rbtree_del(rbtree *tree, rbnode *node)
 			node_to_fixup->parent = node_to_del->parent;
 		else
 			node_to_fixup->parent = node_to_del;
+
 		//2.2,更改node_to_fixup父节点的孩子指针
 		if ( node_to_del == node_to_del->parent->left )
 			node_to_del->parent->left = node_to_fixup;
 		else
 			node_to_del->parent->right = node_to_fixup;
+		node_ext_fixup_to_root(tree, node_to_fixup->parent);
 
 		//3,用node_to_del替换node.
 		//3.1,复制node，除了key,将node_to_del替换node节点
@@ -289,7 +322,7 @@ void rbtree_del(rbtree *tree, rbnode *node)
 		if ( node_to_del->right != &NIL )
 			node_to_del->right->parent = node_to_del;
 
-		//3.2,调整node_to_del的父节点的孩子指针
+		//3.3,调整node_to_del的父节点的孩子指针
 		rbnode * parent = node_to_del->parent;
 		if ( !parent )
 			tree->root = node_to_del;
@@ -297,6 +330,7 @@ void rbtree_del(rbtree *tree, rbnode *node)
 			parent->left = node_to_del;
 		else 
 			parent->right = node_to_del;
+		node_ext_fixup_to_root(tree, node_to_del);
 	} 
 	
 	if ( color_del == COLOR_BLACK )

@@ -17,7 +17,7 @@ typedef struct test_node {
 int main(int argc, char **argv)
 {
 	test_node test_nodes[10];
-	rbtree * tree = rbtree_init();
+	rbtree * tree = rbtree_init(NULL);
 	for ( int i=9;i>=0;i-- ) {
 		rbtree_node_init(&test_nodes[i].node, i);
 		test_nodes[i].value = i+100;

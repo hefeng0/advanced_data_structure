@@ -11,13 +11,13 @@
 
 typedef struct test_node {
 	int data;
-	struct list_head list;
+	struct dlist_head list;
 } test_node;
 
 int main(int argc, char **argv)
 {
-	struct list_head head;
-	list_init(&head);
+	struct dlist_head head;
+	dlist_init(&head);
 	test_node node1 = {
 		.data = 1,
 		.list = INIT_LIST_HEAD(head),
@@ -30,9 +30,9 @@ int main(int argc, char **argv)
 		.data = 3,
 		.list = INIT_LIST_HEAD(head),
 	};
-	list_add(&node1.list, &head);
-	list_add(&node2.list, &head);
-	list_add(&node3.list, &head);
+	dlist_add(&node1.list, &head);
+	dlist_add(&node2.list, &head);
+	dlist_add(&node3.list, &head);
 
 	test_node *pos;
 	container_for_each(pos, &head, list) {
