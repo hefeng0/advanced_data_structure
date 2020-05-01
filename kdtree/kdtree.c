@@ -131,7 +131,7 @@ kdnode * kdtree_nearest(kdtree *tree, double *vals)
 	return target;
 }
 
-void __kdtree_nearest_range(kdtree *tree, kdnode *node, double *vals, double range, list *l)
+void __kdtree_nearest_range(kdtree *tree, int idx, kdnode *node, double *vals, double range, list *l)
 {
 	if ( !node )
 		return;
@@ -139,22 +139,18 @@ void __kdtree_nearest_range(kdtree *tree, kdnode *node, double *vals, double ran
 	if ( sqrt(node_dist) <= range ) {
 		list_add(l, node);
 	}
-	if ( node->left ) {
-		double left_min_dist = point_to_hyperrect_min_dist(node->left, tree->dim, vals);
-		if ( sqrt(left_min_dist) <= range )
-			__kdtree_nearest_range(tree, node->left, vals, range, l);
-	}
-	if ( node->right ) {
-		double right_min_dist = point_to_hyperrect_min_dist(node->right, tree->dim, vals);
-		if ( sqrt(right_min_dist) <= range )
-			__kdtree_nearest_range(tree, node->right, vals, range, l);
-
+	double dx = vals[idx] - node->value[idx];
+	idx = (idx + 1) % tree->dim;
+	__kdtree_nearest_range(tree, idx, dx <= 0.0 ? node->left:node->right, vals, range, l);
+	//其中任意一侧idx维距离已经超过range，另一侧就不用找了
+	if ( fabs(dx) < range ) {
+		__kdtree_nearest_range(tree, idx, dx <= 0.0 ? node->right:node->left, vals, range, l);
 	}
 }
 
 void kdtree_nearest_range(kdtree *tree, double *vals, double range, list *l)
 {
-	return __kdtree_nearest_range(tree, tree->root, vals, range, l);
+	return __kdtree_nearest_range(tree, 0, tree->root, vals, range, l);
 }
 
 void print_kdnode(kdnode *node, int dim, int left_or_right)
